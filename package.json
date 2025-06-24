@@ -6,9 +6,10 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@cap-js/cds-typer": "^0.35.0",
+    "@cap-js/hana": "^1",
     "@sap/cds": "^8",
-    "express": "^4",
-    "@cap-js/hana": "^1"
+    "express": "^4"
   },
   "devDependencies": {
     "@cap-js/cds-types": "^0.10.0",

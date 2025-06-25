@@ -1,5 +1,5 @@
 @server=http://localhost:4004
-@username=alice
+@username=Luis
 @password=
 
 
@@ -16,65 +16,76 @@ Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "ID": "31220396-3379-4cf4-8803-5fb2e305b8a4",
-  "cnpj_fornecedor": "cnpj_fornecedor-31220395",
-  "transportadora": "transportadora-31220396",
-  "pedidos": [],
+  "ID": "12552849-3036-471e-954a-cddb5569a4ag",
+  "cnpj_fornecedor": "cnpj_fornecedor-12552849",
+  "transportadora": "transportadora-12552849",
+  "pedidos": [
+    {
+      "numero_pedido": "Pedidos-103710",
+      "item_pedido": "Pedidos-103710",
+      "valor_pedido": 26.1
+    },
+    {
+      "numero_pedido": "Pedidos-103711",
+      "item_pedido": "Pedidos-103711",
+      "valor_pedido": 26.15
+    }
+  ],
   "acompanhamento": [
     {
-      "data_comentario": "2011-03-06T00:00:00.000Z",
+      "data_comentario": "2006-02-03T00:00:00.000Z",
       "status": {
-        "status": "Coletada"
+        "status": "Encaminhada"
       }
     }
   ],
-  "createdAt": "2023-11-06T00:00:00.000Z",
-  "createdBy": "createdBy.il5t8@example.org",
-  "modifiedAt": "2010-04-28T00:00:00.000Z",
-  "modifiedBy": "modifiedBy.il5t8@example.net"
+  "createdAt": "2005-01-10T00:00:00.000Z",
+  "createdBy": "createdBy.7h1u9@example.com",
+  "modifiedAt": "2007-12-03T00:00:00.000Z",
+  "modifiedBy": "modifiedBy.7h1u9@example.net"
 }
 
 
 ### Coletas
 # @name Coletas_PATCH
-PATCH {{server}}/odata/v4/catalog/Coletas/31220396-3379-4cf4-8803-5fb2e305b8a5
+PATCH {{server}}/odata/v4/catalog/Coletas/12552849-3036-471e-954a-cddb5569a4af
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "ID": "31220396-3379-4cf4-8803-5fb2e305b8a5",
-  "cnpj_fornecedor": "cnpj_fornecedor-31220396",
-  "transportadora": "transportadora-31220396",
+  "ID": "12552849-3036-471e-954a-cddb5569a4af",
+  "cnpj_fornecedor": "cnpj_fornecedor-12552849",
+  "transportadora": "transportadora-12552849",
   "pedidos": [
     {
-      "numero_pedido": "Pedidos-30218802",
-      "item_pedido": "Pedidos-30218802",
-      "valor_pedido": 31.17
+      "numero_pedido": "Pedidos-103710",
+      "item_pedido": "Pedidos-103710",
+      "valor_pedido": 26.1
     },
     {
-      "numero_pedido": "Pedidos-30218803",
-      "item_pedido": "Pedidos-30218803",
-      "valor_pedido": 87.53
+      "numero_pedido": "Pedidos-103711",
+      "item_pedido": "Pedidos-103711",
+      "valor_pedido": 26.15
     }
   ],
   "acompanhamento": [
     {
-      "data_comentario": "2011-03-06T00:00:00.000Z",
+      "data_comentario": "2006-02-03T00:00:00.000Z",
       "status": {
-        "status": "Coletada"
+        "status": "Encaminhada"
       }
     }
   ],
-  "createdAt": "2023-11-06T00:00:00.000Z",
-  "createdBy": "createdBy.il5t8@example.org",
-  "modifiedAt": "2010-04-28T00:00:00.000Z",
-  "modifiedBy": "modifiedBy.il5t8@example.net"
+  "createdAt": "2005-01-10T00:00:00.000Z",
+  "createdBy": "createdBy.7h1u9@example.com",
+  "modifiedAt": "2007-12-03T00:00:00.000Z",
+  "modifiedBy": "modifiedBy.7h1u9@example.net"
 }
 
 
 ### Coletas
 # @name Coletas_DELETE
-DELETE {{server}}/odata/v4/catalog/Coletas/31220396-3379-4cf4-8803-5fb2e305b8a5
+DELETE {{server}}/odata/v4/catalog/Coletas/12552849-3036-471e-954a-cddb5569a4af
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
@@ -92,28 +103,28 @@ Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "numero_pedido": "Pedidos-30218802",
-  "item_pedido": "Pedidos-30218802",
-  "valor_pedido": 31.17
+  "numero_pedido": "Pedidos-103710",
+  "item_pedido": "Pedidos-103710",
+  "valor_pedido": 26.1
 }
 
 
 ### Pedidos
 # @name Pedidos_PATCH
-PATCH {{server}}/odata/v4/catalog/Pedidos(numero_pedido='Pedidos-30218802',item_pedido='Pedidos-30218802')
+PATCH {{server}}/odata/v4/catalog/Pedidos(numero_pedido='Pedidos-103710',item_pedido='Pedidos-103710')
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "numero_pedido": "Pedidos-30218802",
-  "item_pedido": "Pedidos-30218802",
-  "valor_pedido": 31.17
+  "numero_pedido": "Pedidos-103710",
+  "item_pedido": "Pedidos-103710",
+  "valor_pedido": 26.1
 }
 
 
 ### Pedidos
 # @name Pedidos_DELETE
-DELETE {{server}}/odata/v4/catalog/Pedidos(numero_pedido='Pedidos-30218802',item_pedido='Pedidos-30218802')
+DELETE {{server}}/odata/v4/catalog/Pedidos(numero_pedido='Pedidos-103710',item_pedido='Pedidos-103710')
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
@@ -131,9 +142,9 @@ Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "data_comentario": "2011-03-06T00:00:00.000Z",
+  "data_comentario": "2006-02-03T00:00:00.000Z",
   "status": {
-    "status": "Coletada"
+    "status": "Encaminhada"
   }
 }
 
@@ -145,9 +156,9 @@ Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "data_comentario": "2011-03-06T00:00:00.000Z",
+  "data_comentario": "2006-02-03T00:00:00.000Z",
   "status": {
-    "status": "Coletada"
+    "status": "Encaminhada"
   }
 }
 
@@ -172,25 +183,25 @@ Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "status": "Coletada",
-  "descricao": "descricao-17591676"
+  "status": "Encaminhada",
+  "descricao": "descricao-10708748"
 }
 
 
 ### Status
 # @name Status_PATCH
-PATCH {{server}}/odata/v4/catalog/Status/Coletada
+PATCH {{server}}/odata/v4/catalog/Status/Encaminhada
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "status": "Coletada",
-  "descricao": "descricao-17591676"
+  "status": "Encaminhada",
+  "descricao": "descricao-10708748"
 }
 
 
 ### Status
 # @name Status_DELETE
-DELETE {{server}}/odata/v4/catalog/Status/Coletada
+DELETE {{server}}/odata/v4/catalog/Status/Encaminhada
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}

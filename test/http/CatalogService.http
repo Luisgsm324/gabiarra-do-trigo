@@ -1,5 +1,5 @@
 @server=http://localhost:4004
-@username=Luis
+@username=Cleber
 @password=
 
 ### Coletas
@@ -95,7 +95,7 @@ Authorization: Basic {{username}}:{{password}}
 
 ### Coletas
 # @name Coletas_DELETE
-DELETE {{server}}/odata/v4/catalog/Coletas/12552849-3036-471e-954a-cddb5569a4af
+DELETE {{server}}/odata/v4/catalog/Coletas/12552849-3036-471e-954a-cddb5569a4ag
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 

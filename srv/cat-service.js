@@ -7,7 +7,19 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 // -----------------------------------------------------------------------
 // # Coletas
 // -----------------------------------------------------------------------
-    
+
+  this.before('DELETE', Coletas, async (req) => {    
+    const coleta = await SELECT.one
+                          .from(`${Coletas.name} as A`)                      
+                          .join(`${Acompanhamentos.name} as B`)
+                          .on(`A.ID = B.ID_id and B.status_status = 'Criada'`)
+                          .columns(`A.ID`)
+                          .where(`ID = '${req.data.ID}' and createdBy = '${req.user.id}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject
+
+    if (coleta == null) {return req.reject(400, "Essa coleta não é possível de ser apagada")};
+  });
+
+  // Validações no caso de criação e atualização (responsável pela aplicação das regras de negócio)
   this.before (['CREATE', 'UPDATE'], Coletas, async (req) => { 
     // Verificação se existe algum pedido atrelado a Coleta
     if (req.data.pedidos.length == 0) { return req.reject(400, "É necessário que a coleta esteja atrelada a algum pedido"); };
@@ -34,6 +46,7 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     });    
     
   })
+
   // Método de encaminhamento de Coleta.
   this.on('fowardCollect', Coletas, async (req) => {
       const ID  = req.params[0];

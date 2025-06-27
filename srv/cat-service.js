@@ -25,16 +25,36 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
                     .from(Coletas)                    
                     .columns(c => { c.pedidos`[numero_pedido in ${numero_pedidos}]`(ped => {ped`.*`}),
                                     c.acompanhamento`[status_status != 'Rejeitada']`(acom => {acom`.*`})
-                                  });  
+                                  });   
     
     coletas.forEach(element => {           
       if (element.pedidos.length != 0 && element.acompanhamento != null) {
-        return req.reject(400, "Já existe uma coleta atrelada a esse pedido!"); ;
+        return req.reject(402, "Já existe uma coleta atrelada a esse pedido!"); ;
       }
     });    
     
-  })  
+  })
+  // Método de encaminhamento de Coleta.
+  this.on('fowardCollect', Coletas, async (req) => {
+      const ID  = req.params[0];
+      // Buscar coleta para validações      
+      const coleta = await SELECT.one
+                    .from(Coletas)
+                    .columns('*', expand('acompanhamento'))
+                    .where({ID});      
+      
+      if (coleta == null) {return req.reject(400, "Nenhuma coleta foi encontrada para esse ID!")};
+      if (coleta.acompanhamento.status_status != 'Criada') {return req.reject(402, "O encaminhamento pode acontecer apenas com o status 'Criada' ")};
+      if (coleta.createdBy != req.user.id) {return req.reject(403, "Apenas o usuário que criou a Coleta pode encaminhar")};
+      
+      const resultUpdateCol = await UPDATE(Coletas).set({transportadora: req.data.transportadora}).where({ID: ID});
+      const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
+      
+      console.log(resultUpdateCol);
+      console.log(resultUpdateAcom);
 
+  })
+  
   this.after(['CREATE', 'UPDATE'], Coletas, async (coletas, req) => {
     // console.log(coletas.acompanhamento[0].status_status);
     // coletas.acompanhamento[0].status_status = 'Criada';

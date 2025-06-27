@@ -57,22 +57,26 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 
   // Método de encaminhamento de Coleta.
   this.on('fowardCollect', Coletas, async (req) => {
-      const ID  = req.params[0];
-      // Buscar coleta para validações      
-      const coleta = await SELECT.one
-                    .from(Coletas)
-                    .columns('*', expand('acompanhamento'))
-                    .where({ID});      
+      // const ID  = req.params[0];
+      // // Buscar coleta para validações      
+      // const coleta = await SELECT.one
+      //               .from(Coletas)
+      //               .columns('*', expand('acompanhamento'))
+      //               .where({ID});      
       
-      if (coleta == null) {return req.reject(400, "Nenhuma coleta foi encontrada para esse ID!")};
-      if (coleta.acompanhamento.status_status != 'Criada') {return req.reject(402, "O encaminhamento pode acontecer apenas com o status 'Criada' ")};
-      if (coleta.createdBy != req.user.id) {return req.reject(403, "Apenas o usuário que criou a Coleta pode encaminhar")};
+      // if (coleta == null) {return req.reject(400, "Nenhuma coleta foi encontrada para esse ID!")};
+      // if (coleta.acompanhamento.status_status != 'Criada') {return req.reject(402, "O encaminhamento pode acontecer apenas com o status 'Criada' ")};
+      // if (coleta.createdBy != req.user.id) {return req.reject(403, "Apenas o usuário que criou a Coleta pode encaminhar")};
       
-      const resultUpdateCol = await UPDATE(Coletas).set({transportadora: req.data.transportadora}).where({ID: ID});
-      const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
+      // const resultUpdateCol = await UPDATE(Coletas).set({transportadora: req.data.transportadora}).where({ID: ID});
+      // const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
       
-      console.log(resultUpdateCol);
-      console.log(resultUpdateAcom);
+      // console.log(resultUpdateCol);
+      // console.log(resultUpdateAcom);
+      const returnValue = await this.encaminharColeta(Coletas, Acompanhamentos, req, req.params[0], req.data.transportadora);
+      if (returnValue.statusCode != 200) {
+        return req.reject(returnValue.statusCode, returnValue.message);        
+      };
 
   })
   
@@ -117,4 +121,43 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 
 
   return super.init()
-}}
+}
+  async encaminharColeta(Coletas, Acompanhamentos, req, ID, carrier) {          
+      let returnStruc = {
+        "statusCode": 200,
+        "message": ""
+      };
+    
+      // Buscar coleta para validações      
+      try {
+        const coleta = await SELECT.one
+                    .from(Coletas)
+                    .columns('*', expand('acompanhamento'))
+                    .where({ID});      
+      if (coleta == null) { 
+        returnStruc.statusCode = 400;
+        returnStruc.message = "Nenhuma coleta foi encontrada para esse ID!";
+        
+      };
+      if (coleta.acompanhamento.status_status != 'Criada') { 
+        returnStruc.statusCode = 402;
+        returnStruc.message = "O encaminhamento pode acontecer apenas com o status 'Criada'";
+        
+      }; 
+      if (coleta.createdBy != req.user.id) { 
+        returnStruc.statusCode = 403;
+        returnStruc.message = "Apenas o usuário que criou a Coleta pode encaminhar";
+        
+      };                     
+            
+      const resultUpdateCol = await UPDATE(Coletas).set({transportadora: carrier}).where({ID: ID});
+      const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
+      } catch (error) {
+        
+      }
+      return returnStruc;
+      
+  }
+
+
+}

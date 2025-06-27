@@ -25,10 +25,18 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     if (req.data.pedidos.length == 0) { return req.reject(400, "É necessário que a coleta esteja atrelada a algum pedido"); };
 
     // Alteração do status do acompanhamento para criada (entendi que a data_comentario seja equivalente a data que ocorreu a atualização de um status)
-    if (req.data.acompanhamento[0].status.status != null) {
-      req.data.acompanhamento[0].status.status = 'Criada';
-      req.data.acompanhamento[0].data_comentario = new Date();
-    };
+    const acompanhamentoStru = {
+      "data_comentario": new Date(),
+      "status": {
+        "status": "Criada"
+      }
+    }
+    req.data.acompanhamento[0] = acompanhamentoStru;
+    
+    // if (req.data.acompanhamento[0].status.status != null) {
+    //   req.data.acompanhamento[0].status.status = 'Criada';
+    //   req.data.acompanhamento[0].data_comentario = new Date();
+    // };
     
     // Lógica para verificação se já existe alguma coleta atrelada a esses pedidos em um status válido
     const numero_pedidos = req.data.pedidos.map((element) => {return element.numero_pedido})

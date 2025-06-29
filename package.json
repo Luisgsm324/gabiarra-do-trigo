@@ -22,6 +22,25 @@
   "cds": {
     "sql": {
       "native_hana_associations": false
+    },
+    "requires": {
+      "[development]": {
+        "auth": {
+          "kind": "mocked",
+          "users": {
+            "Luis": {
+              "roles": [
+                "vendor"
+              ]
+            },
+            "Cleber": {
+              "roles": [
+                "vendor"
+              ]
+            }
+          }
+        }
+      }
     }
   }
 }

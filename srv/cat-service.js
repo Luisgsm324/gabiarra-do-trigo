@@ -8,15 +8,9 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 // # Coletas
 // -----------------------------------------------------------------------
 
-  this.before('DELETE', Coletas, async (req) => {    
-    const coleta = await SELECT.one
-                          .from(`${Coletas.name} as A`)                      
-                          .join(`${Acompanhamentos.name} as B`)
-                          .on(`A.ID = B.ID_id and B.status_status = 'Criada'`)
-                          .columns(`A.ID`)
-                          .where(`ID = '${req.data.ID}' and createdBy = '${req.user.id}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject
-
-    if (coleta == null) {return req.reject(400, "Essa coleta não é possível de ser apagada")};
+  this.before('DELETE', Coletas, async (req) => {        
+    const coleta = await this.verificarColeta(Coletas, Acompanhamentos, req, req.data.ID);  
+    if (coleta == undefined) {return req.reject(400, "Essa coleta não é possível de ser apagada")};
   });
 
   // Validações no caso de criação e atualização (responsável pela aplicação das regras de negócio)
@@ -32,12 +26,6 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
       }
     }
     req.data.acompanhamento[0] = acompanhamentoStru;
-    
-    // if (req.data.acompanhamento[0].status.status != null) {
-    //   req.data.acompanhamento[0].status.status = 'Criada';
-    //   req.data.acompanhamento[0].data_comentario = new Date();
-    // };
-    
     // Lógica para verificação se já existe alguma coleta atrelada a esses pedidos em um status válido
     const numero_pedidos = req.data.pedidos.map((element) => {return element.numero_pedido})
     
@@ -57,22 +45,6 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 
   // Método de encaminhamento de Coleta.
   this.on('fowardCollect', Coletas, async (req) => {
-      // const ID  = req.params[0];
-      // // Buscar coleta para validações      
-      // const coleta = await SELECT.one
-      //               .from(Coletas)
-      //               .columns('*', expand('acompanhamento'))
-      //               .where({ID});      
-      
-      // if (coleta == null) {return req.reject(400, "Nenhuma coleta foi encontrada para esse ID!")};
-      // if (coleta.acompanhamento.status_status != 'Criada') {return req.reject(402, "O encaminhamento pode acontecer apenas com o status 'Criada' ")};
-      // if (coleta.createdBy != req.user.id) {return req.reject(403, "Apenas o usuário que criou a Coleta pode encaminhar")};
-      
-      // const resultUpdateCol = await UPDATE(Coletas).set({transportadora: req.data.transportadora}).where({ID: ID});
-      // const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
-      
-      // console.log(resultUpdateCol);
-      // console.log(resultUpdateAcom);
       const returnValue = await this.encaminharColeta(Coletas, Acompanhamentos, req, req.params[0], req.data.transportadora);
       if (returnValue.statusCode != 200) {
         return req.reject(returnValue.statusCode, returnValue.message);        
@@ -122,6 +94,22 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 
   return super.init()
 }
+
+// -----------------------------------------------------------------------
+// # encaminharColeta
+// -----------------------------------------------------------------------
+// Método responsável pelo encaminhamento da Coleta (realiza as verificações de negócio) 
+// -----------------------------------------------------------------------
+// Inputs <<
+// << Coletas - Entidade Coletas
+// << Acompanhamentos - Entidade Acompanhamentos
+// << req - Requisição
+// << ID - ID da Coleta para fazer a busca na entidade
+// << carrier - Nome da transportadora para ser atribuída
+// -----------------------------------------------------------------------
+// Outputs >>
+// >> returnStruc - Estrutura de saída com o Status Code e a mensagem para validação
+// -----------------------------------------------------------------------
   async encaminharColeta(Coletas, Acompanhamentos, req, ID, carrier) {          
       let returnStruc = {
         "statusCode": 200,
@@ -129,29 +117,16 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
       };
     
       // Buscar coleta para validações      
-      try {
-        const coleta = await SELECT.one
-                    .from(Coletas)
-                    .columns('*', expand('acompanhamento'))
-                    .where({ID});      
-      if (coleta == null) { 
-        returnStruc.statusCode = 400;
-        returnStruc.message = "Nenhuma coleta foi encontrada para esse ID!";
-        
-      };
-      if (coleta.acompanhamento.status_status != 'Criada') { 
-        returnStruc.statusCode = 402;
-        returnStruc.message = "O encaminhamento pode acontecer apenas com o status 'Criada'";
-        
-      }; 
-      if (coleta.createdBy != req.user.id) { 
-        returnStruc.statusCode = 403;
-        returnStruc.message = "Apenas o usuário que criou a Coleta pode encaminhar";
-        
-      };                     
+      try {   
+      const coleta = await this.verificarColeta(Coletas, Acompanhamentos, req, ID);  
+      if (coleta == undefined) {return req.reject(400, "Não foi possível realizar o encaminhamento dessa coleta")};
             
       const resultUpdateCol = await UPDATE(Coletas).set({transportadora: carrier}).where({ID: ID});
       const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
+      if (resultUpdateCol == 0 || resultUpdateAcom == 0) {
+        returnStruc.statusCode = 406;
+        returnStruc.message = "Ocorreu um erro ao tentar realizar a atualização das entidades";
+      }
       } catch (error) {
         
       }
@@ -159,5 +134,28 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
       
   }
 
+// -----------------------------------------------------------------------
+// # verificarColeta
+// -----------------------------------------------------------------------
+// Método responsável por verificar os seguintes pontos: Se existe uma coleta com esse ID, se ela possui o status "Criada" e se essa coleta foi criada por esse usuário
+// -----------------------------------------------------------------------
+// Inputs <<
+// << Coletas - Entidade Coletas
+// << Acompanhamentos - Entidade Acompanhamentos
+// << req - Requisição
+// << ID - ID da Coleta para fazer a busca na entidade
+// -----------------------------------------------------------------------
+// Outputs >>
+// >> coleta - Estrutura de saída que vai ser o resultado do SELECT da coleta
+// -----------------------------------------------------------------------  
+  async verificarColeta(Coletas, Acompanhamentos, req, ID) {
+    const coleta = await SELECT.one
+                          .from(`${Coletas.name} as A`)                      
+                          .join(`${Acompanhamentos.name} as B`)
+                          .on(`A.ID = B.ID_id and B.status_status = 'Criada'`)
+                          .columns(`A.ID`)
+                          .where(`ID = '${ID}' and createdBy = '${req.user.id}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject    
+    return coleta;                          
+  };
 
 }

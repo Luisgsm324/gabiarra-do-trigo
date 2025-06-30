@@ -37,6 +37,12 @@
               "roles": [
                 "vendor"
               ]
+            },
+            "Maria" : {
+              "attr": {"carrier": "PLN entregas"},
+              "roles": [
+                "carrier"
+              ]
             }
           }
         }

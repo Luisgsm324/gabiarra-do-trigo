@@ -1,5 +1,5 @@
 @server=http://localhost:4004
-@username=Luis
+@username=Maria
 @password=
 
 ### Coletas
@@ -13,9 +13,25 @@ Authorization: Basic {{username}}:{{password}}
 }
 
 
+### Requisição de Aceitar ou rejeitar coleta
+# @name Coletas_POST
+POST {{server}}/odata/v4/catalog/Coletas('12552849-3036-471e-954a-cddb5569a4ag')/respondCollect
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "action": "Accept"
+}
+
+### Requisição para coletar coleta
+# @name Coletas_POST
+POST {{server}}/odata/v4/catalog/Coletas('12552849-3036-471e-954a-cddb5569a4ag')/finishCollect
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
 ### Coletas
 # @name Coletas_GET
-GET {{server}}/odata/v4/catalog/Coletas
+GET {{server}}/odata/v4/catalog/Coletas?
 Authorization: Basic {{username}}:{{password}}
 
 

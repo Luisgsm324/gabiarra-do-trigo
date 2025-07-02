@@ -71,6 +71,13 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     
   });
 
+  this.on('finishCollect', Coletas, async (req) => {
+    const result = await this.coletarColeta(Coletas, Acompanhamentos, req.user.attr.carrier, req.params[0]);
+    if (result.statusCode != 200) {
+      return req.reject(result.statusCode, result.message);  
+    };
+  });
+
   this.on('READ', Coletas, async(req) => {        
     const acompanhamentoRef = { ref: [ 'acompanhamento' ], expand: [ '*' ] };
     // Essa restrição vai fazer com que seja apenas aplicado no caso do GET, o que evita que seja aplicado para os outros casos de SELECT no UPDATE.
@@ -217,13 +224,13 @@ async responderColeta(Coletas, Acompanhamentos, ID, carrier, status) {
    try {
   console.log(carrier)
     
-    const coleta = await SELECT.one
-                          .from(`${Coletas.name} as A`)                      
-                          .join(`${Acompanhamentos.name} as B`)
-                          .on(`A.ID = B.ID_id and B.status_status = 'Encaminhada'`)
-                          .columns(`A.ID`)
-                          .where(`ID = '${ID}' and transportadora = '${carrier}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject 
-  // const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier);
+    // const coleta = await SELECT.one
+    //                       .from(`${Coletas.name} as A`)                      
+    //                       .join(`${Acompanhamentos.name} as B`)
+    //                       .on(`A.ID = B.ID_id and B.status_status = 'Encaminhada'`)
+    //                       .columns(`A.ID`)
+    //                       .where(`ID = '${ID}' and transportadora = '${carrier}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject 
+  const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier, 'Encaminhada');
   console.log(coleta);
   if (coleta == undefined) {
     returnStruc.statusCode = 400;
@@ -255,15 +262,50 @@ async responderColeta(Coletas, Acompanhamentos, ID, carrier, status) {
 // Outputs >>
 // >> coleta - Estrutura de saída que vai ser o resultado do SELECT da coleta
 // -----------------------------------------------------------------------  
-async buscarColetaTransportadora(Coletas, carrier) {
-  const coletas = await SELECT
-                    .from(Coletas)                    
-                    .columns(c => { c.pedidos(ped => {ped`.*`}),
-                                    c.acompanhamento`[status_status = 'Encaminhada']`(acom => {acom`.*`})
-                                  })
-                    .where(`transportadora = '${carrier}'`);
-  return coletas;                          
+async buscarColetaTransportadora(Coletas, Acompanhamentos,  ID, carrier, status) {
+  const coleta = await SELECT.one
+                          .from(`${Coletas.name} as A`)                      
+                          .join(`${Acompanhamentos.name} as B`)
+                          .on(`A.ID = B.ID_id and B.status_status = '${status}'`)
+                          .columns(`A.ID`)
+                          .where(`ID = '${ID}' and transportadora = '${carrier}'`);
+  return coleta;                          
 };
 
+// -----------------------------------------------------------------------
+// # coletarColeta
+// -----------------------------------------------------------------------
+// Método responsável coletar a coleta que foi aceita
+// -----------------------------------------------------------------------
+// Inputs <<
+// << Coletas - Entidade Coletas
+// << Acompanhamentos - Entidade Acompanhamentos
+// << carrier - Nome da transportadora para ser atribuída
+// << ID - ID da Coleta
+// -----------------------------------------------------------------------
+// Outputs >>
+// >> returnStruc - Estrutura de saída com o Status Code e a mensagem para validação
+// -----------------------------------------------------------------------  
+
+async coletarColeta(Coletas, Acompanhamentos, carrier, ID) {
+  // ID = req.params[0]
+  let returnStruc = {
+    "statusCode": 200,
+    "message": ""
+  };
+
+  const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier,  'Aceita');
+  if (coleta == undefined) {
+    returnStruc.statusCode = 400;
+    returnStruc.message = "Não foi possível encontrar a coleta com os requisitos necessários";
+    return returnStruc;
+  };
+  const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Coletada', data_comentario: new Date()}).where({id_ID: ID});
+  if (resultUpdateAcom == 0) {
+    returnStruc.statusCode = 402;
+    returnStruc.message = "Ocorreu um erro ao tentar realizar a atualização das entidades";
+  };
+  return returnStruc;
+}
 
 }

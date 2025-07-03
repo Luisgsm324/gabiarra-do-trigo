@@ -9,16 +9,16 @@ entity Coletas : cuid, managed {
 }
 
 entity Pedidos {
-  id: Association to many Coletas; // Pelo visto, é possível ter mais de uma coleta associada a um pedido portanto que não esteja em um status válido. Válido != 'Rejeitada'
+  id: Association to Coletas; // Pelo visto, é possível ter mais de uma coleta associada a um pedido portanto que não esteja em um status válido. Válido != 'Rejeitada'
   key numero_pedido: String;
   key item_pedido: String;
   valor_pedido: Decimal;
 }
 
 entity Acompanhamentos {
-  key id: Association to one Coletas;
+  key id: Association to Coletas;
   data_comentario : DateTime; 
-  status: Association to one Status; 
+  status: Association to Status; 
 }
 
 entity Status {

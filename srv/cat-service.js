@@ -83,13 +83,16 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     // Essa restrição vai fazer com que seja apenas aplicado no caso do GET, o que evita que seja aplicado para os outros casos de SELECT no UPDATE.
     if (req.res != undefined) {      
       console.log(req.user.roles);
-      if (req.user.roles.hasOwnProperty('carrier')) {
-        // Incluir a expansão do acompanhamento para fazer a verificação na aplicação
-        acompanhamentoRef in req.query.SELECT.columns ? "" : req.query.SELECT.columns.push(acompanhamentoRef) ;
+      // Incluir a expansão do acompanhamento de forma automática
+      acompanhamentoRef in req.query.SELECT.columns ? "" : req.query.SELECT.columns.push(acompanhamentoRef) ;
+      
+      if (req.user.roles.hasOwnProperty('carrier')) {        
         console.log(req.query.SELECT);
         req.query.SELECT.where = [{ ref: ['transportadora'] }, '=', { val: req.user.attr.carrier }];
         console.log(req.query.SELECT);
-      }      
+      } else if (req.user.roles.hasOwnProperty('vendor')) {
+        req.query.SELECT.where = [{ ref: ['createdBy'] }, '=', { val: req.user.id }];
+      }     
       const results = cds.run(req.query);      
       return results;
     }

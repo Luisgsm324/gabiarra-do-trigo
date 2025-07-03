@@ -17,10 +17,16 @@
     "@cap-js/sqlite": "^2",
     "@sap/cds-dk": "^9",
     "@sap/hdi-deploy": "^5.4.2",
-    "hdb": "^0.19.12"
+    "hdb": "^0.19.12",
+    "rimraf": "^5.0.5",
+    "mbt": "^1.2.29"
   },
   "scripts": {
-    "start": "cds-serve"
+    "start": "cds-serve",
+    "watch-gabiarra-do-trigo": "cds watch --open gabiarra-do-trigo/webapp/index.html?sap-ui-xx-viewCache=false",
+    "undeploy": "cf undeploy gabiarra-do-trigo --delete-services --delete-service-keys --delete-service-brokers",
+    "build": "rimraf resources mta_archives && mbt build --mtar archive",
+    "deploy": "cf deploy mta_archives/archive.mtar --retries 1"
   },
   "cds": {
     "sql": {
@@ -60,5 +66,8 @@
       "html5-runtime": true,
       "workzone": true
     }
-  }
+  },
+  "sapux": [
+    "app/gabiarra-do-trigo"
+  ]
 }

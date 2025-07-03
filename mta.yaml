@@ -4,6 +4,7 @@ version: 1.0.0
 description: "A simple CAP project."
 parameters:
   enable-parallel-deployments: true
+  deploy_mode: html5-repo
 build-parameters:
   before-all:
     - builder: custom
@@ -24,7 +25,9 @@ modules:
         properties:
           srv-url: ${default-url}
     requires:
+      - name: gabiarra-do-trigo-auth
       - name: gabiarra-do-trigo-db
+      - name: gabiarra-do-trigo-destination
 
   - name: gabiarra-do-trigo-db-deployer
     type: hdb
@@ -34,9 +37,103 @@ modules:
     requires:
       - name: gabiarra-do-trigo-db
 
+  - name: gabiarra-do-trigo-app-deployer
+    type: com.sap.application.content
+    path: gen
+    requires:
+      - name: gabiarra-do-trigo-html5-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: app/
+      requires:
+
+
+
+  - name: gabiarra-do-trigo-destinations
+    type: com.sap.application.content
+    requires:
+      - name: gabiarra-do-trigo-auth
+        parameters:
+          service-key:
+            name: gabiarra-do-trigo-auth-key
+      - name: gabiarra-do-trigo-html5-repo-host
+        parameters:
+          service-key:
+            name: gabiarra-do-trigo-html5-repo-host-key
+      - name: srv-api
+      - name: gabiarra-do-trigo-destination
+        parameters:
+          content-target: true
+    build-parameters:
+      no-source: true
+    parameters:
+      content:
+        instance:
+          existing_destinations_policy: update
+          destinations:
+            - Name: gabiarra-do-trigo-html5-repository
+              ServiceInstanceName: gabiarra-do-trigo-html5-repo-host
+              ServiceKeyName: gabiarra-do-trigo-html5-repo-host-key
+              sap.cloud.service: gabiarradotrigo.service
+            - Name: gabiarra-do-trigo-auth
+              Authentication: OAuth2UserTokenExchange
+              ServiceInstanceName: gabiarra-do-trigo-auth
+              ServiceKeyName: gabiarra-do-trigo-auth-key
+              sap.cloud.service: gabiarradotrigo.service
 resources:
+  - name: gabiarra-do-trigo-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: gabiarra-do-trigo-${org}-${space}
+        tenant-mode: dedicated
   - name: gabiarra-do-trigo-db
     type: com.sap.xs.hdi-container
     parameters:
       service: hana
       service-plan: hdi-shared
+  - name: gabiarra-do-trigo-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+      config:
+        HTML5Runtime_enabled: true
+        init_data:
+          instance:
+            existing_destinations_policy: update
+            destinations:
+              - Name: srv-api
+                URL: ~{srv-api/srv-url}
+                Authentication: NoAuthentication
+                Type: HTTP
+                ProxyType: Internet
+                HTML5.ForwardAuthToken: true
+                HTML5.DynamicDestination: true
+              - Name: ui5
+                URL: https://ui5.sap.com
+                Authentication: NoAuthentication
+                Type: HTTP
+                ProxyType: Internet
+    requires:
+      - name: srv-api
+        group: destinations
+        properties:
+          name: srv-api # must be used in xs-app.json as well
+          url: ~{srv-url}
+          forwardAuthToken: true
+
+  - name: gabiarra-do-trigo-html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+  - name: gabiarra-do-trigo-html5-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-runtime

@@ -1,0 +1,31 @@
+{
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.vendor",
+      "description": "vendor"
+    },
+    {
+      "name": "$XSAPPNAME.carrier",
+      "description": "carrier"
+    }
+  ],
+  "attributes": [],
+  "role-templates": [
+    {
+      "name": "vendor",
+      "description": "generated",
+      "scope-references": [
+        "$XSAPPNAME.vendor"
+      ],
+      "attribute-references": []
+    },
+    {
+      "name": "carrier",
+      "description": "generated",
+      "scope-references": [
+        "$XSAPPNAME.carrier"
+      ],
+      "attribute-references": []
+    }
+  ]
+}

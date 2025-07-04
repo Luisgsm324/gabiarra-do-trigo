@@ -1,5 +1,5 @@
 @server=http://localhost:4004
-@username=Maria
+@username=Luis
 @password=
 
 ### Coletas
@@ -43,7 +43,7 @@ Authorization: Basic {{username}}:{{password}}
 
 {
   "ID": "12552849-3036-471e-954a-cddb5569a4ag",
-  "cnpj_fornecedor": "cnpj_fornecedor-12552849",
+  "cnpj_fornecedor": "19131243000194",
   "transportadora": "transportadora-12552849",
   "pedidos": [
     {

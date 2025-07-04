@@ -4,6 +4,7 @@ const { expand } = require('@sap/cds/lib/ql/cds-ql');
 
 module.exports = class CatalogService extends cds.ApplicationService { async init() {
   const { Coletas, Pedidos, Acompanhamentos, Status } = cds.entities('CatalogService');
+  const api = await cds.connect.to('Brasil.API');
 // -----------------------------------------------------------------------
 // # Coletas
 // -----------------------------------------------------------------------
@@ -30,6 +31,16 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     req.data.acompanhamento[0] = acompanhamentoStru;
 
     req.data.transportadora = ""; // Deixar vazio mesmo que seja fornecido a transportadora 
+    try {
+      console.log(req.data.cnpj_fornecedor);
+      const { cnpj: cnpj } = await api.get(`/cnpj/v1/${req.data.cnpj_fornecedor}`);      
+    } catch (error) {
+      return req.reject(400, "CNPJ Inválido. Tente inserir um CNPJ válido!")
+    }
+    
+    
+    // const keys = Object.keys(response);
+    // console.log(response);
 
     // Lógica para verificação se já existe alguma coleta atrelada a esses pedidos em um status válido
     const numero_pedidos = req.data.pedidos.map((element) => {return element.numero_pedido})

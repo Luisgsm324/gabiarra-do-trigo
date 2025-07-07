@@ -5,6 +5,7 @@ const { expand } = require('@sap/cds/lib/ql/cds-ql');
 module.exports = class CatalogService extends cds.ApplicationService { async init() {
   const { Coletas, Pedidos, Acompanhamentos, Status } = cds.entities('CatalogService');
   const api = await cds.connect.to('Brasil.API');
+  const i18n = cds.i18n.messages;
 // -----------------------------------------------------------------------
 // # Coletas
 // -----------------------------------------------------------------------
@@ -12,14 +13,15 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
   this.before('DELETE', Coletas, async (req) => {        
     const coleta = await this.verificarColeta(Coletas, Acompanhamentos, req, req.data.ID, 'Criada');
     console.log(coleta);  
-    if (coleta == undefined) {return req.reject(400, "Essa coleta não é possível de ser apagada")};
+    if (coleta == undefined) {return req.reject(400, i18n.at("ERROR_DELETE_COLLECT", req.locale))};
   });
   
   // Validações no caso de criação e atualização (responsável pela aplicação das regras de negócio)
   // Atualizar essa parte depois!!
   this.before (['CREATE', 'UPDATE'], Coletas, async (req) => { 
+    console.log(req.params);
     // Verificação se existe algum pedido atrelado a Coleta
-    if (req.data.pedidos.length == 0) { return req.reject(400, "É necessário que a coleta esteja atrelada a algum pedido"); };
+    if (req.data.pedidos.length == 0) { return req.reject(400, i18n.at("ERROR_COLLECT_WITHOUT_DEMANDS", req.locale)); };
 
     // Alteração do status do acompanhamento para criada (entendi que a data_comentario seja equivalente a data que ocorreu a atualização de um status)
     const acompanhamentoStru = {
@@ -35,7 +37,7 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
       console.log(req.data.cnpj_fornecedor);
       const { cnpj: cnpj } = await api.get(`/cnpj/v1/${req.data.cnpj_fornecedor}`);      
     } catch (error) {
-      return req.reject(400, "CNPJ Inválido. Tente inserir um CNPJ válido!")
+      return req.reject(400, i18n.at("ERROR_INVALID_CNPJ", req.locale))
     }
     
     
@@ -53,7 +55,7 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     
     coletas.forEach(element => {           
       if (element.pedidos.length != 0 && element.acompanhamento != null) {
-        return req.reject(402, "Já existe uma coleta atrelada a esse pedido!"); ;
+        return req.reject(402, i18n.at("ERROR_COLLECT_REPEATED_DEMANDS", req.locale)); ;
       }
     });    
     
@@ -63,11 +65,12 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
   this.on('fowardCollect', Coletas, async (req) => {
       const returnValue = await this.encaminharColeta(Coletas, Acompanhamentos, req, req.params[0], req.data.transportadora);
       if (returnValue.statusCode != 200) {
-        return req.reject(returnValue.statusCode, returnValue.message);        
+        return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) );        
       };
 
   })
   
+  // Método de Aceitar ou Rejeitar a Coleta
   this.on('respondCollect', Coletas, async (req) => {
     let status;
     req.data.action == "Accept" ? status = "Aceita" : status = "Rejeitada";
@@ -77,17 +80,19 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     console.log(req.params[0]);
     const result = await this.responderColeta(Coletas, Acompanhamentos, req.params[0], req.user.attr.carrier,  status)
     if (result.statusCode != 200) {
-      return req.reject(result.statusCode, result.message);        
+      return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) );        
     };
     
   });
 
+  // Método de Coletar a coleta
   this.on('finishCollect', Coletas, async (req) => {
     const result = await this.coletarColeta(Coletas, Acompanhamentos, req.user.attr.carrier, req.params[0]);
     if (result.statusCode != 200) {
-      return req.reject(result.statusCode, result.message);  
+      return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) ); 
     };
   });
+
 
   this.on('READ', Coletas, async(req) => {        
     const acompanhamentoRef = { ref: [ 'acompanhamento' ], expand: [ '*' ] };
@@ -176,13 +181,18 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
       // Buscar coleta para validações      
       try {   
       const coleta = await this.verificarColeta(Coletas, Acompanhamentos, req, ID, 'Criada');  
-      if (coleta == undefined) {return req.reject(400, "Não foi possível realizar o encaminhamento dessa coleta")};
+      // if (coleta == undefined) {return req.reject(400, "Não foi possível realizar o encaminhamento dessa coleta")};
+      if (coleta == undefined) {
+        returnStruc.statusCode = 400;
+        returnStruc.message = "ERROR_FOWARDING_COLLECT";    
+        return returnStruc;    
+      };
             
       const resultUpdateCol = await UPDATE(Coletas).set({transportadora: carrier}).where({ID: ID});
       const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
       if (resultUpdateCol == 0 || resultUpdateAcom == 0) {
         returnStruc.statusCode = 406;
-        returnStruc.message = "Ocorreu um erro ao tentar realizar a atualização das entidades";
+        returnStruc.message = "ERROR_UPDATING_ENTITY";
       }
       } catch (error) {
         
@@ -248,13 +258,14 @@ async responderColeta(Coletas, Acompanhamentos, ID, carrier, status) {
   console.log(coleta);
   if (coleta == undefined) {
     returnStruc.statusCode = 400;
-    returnStruc.message = "Não foi possível encontrar a coleta com os requisitos necessários";
+    returnStruc.message = "ERROR_COLLECT_NOT_FOUND";
+    return returnStruc;
   };
 
    const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: status, data_comentario: new Date()}).where({id_ID: ID});
    if (resultUpdateAcom == 0) {
      returnStruc.statusCode = 402;
-     returnStruc.message = "Ocorreu um erro ao tentar realizar a atualização das entidades";
+     returnStruc.message = "ERROR_UPDATING_ENTITY";
    };
     
    } catch (error) {
@@ -311,13 +322,13 @@ async coletarColeta(Coletas, Acompanhamentos, carrier, ID) {
   const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier,  'Aceita');
   if (coleta == undefined) {
     returnStruc.statusCode = 400;
-    returnStruc.message = "Não foi possível encontrar a coleta com os requisitos necessários";
+    returnStruc.message = "ERROR_COLLECT_NOT_FOUND";
     return returnStruc;
   };
   const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Coletada', data_comentario: new Date()}).where({id_ID: ID});
   if (resultUpdateAcom == 0) {
     returnStruc.statusCode = 402;
-    returnStruc.message = "Ocorreu um erro ao tentar realizar a atualização das entidades";
+    returnStruc.message = "ERROR_UPDATING_ENTITY";
   };
   return returnStruc;
 }

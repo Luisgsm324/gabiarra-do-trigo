@@ -1,0 +1,233 @@
+@server=http://localhost:4004
+@username=Luis
+@password=
+
+### Coletas
+# @name Coletas_POST
+POST {{server}}/odata/v4/catalog/Coletas('12552849-3036-471e-954a-cddb5569a4ag')/fowardCollect
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "transportadora": "PLN entregas"
+}
+
+
+### Requisição de Aceitar ou rejeitar coleta
+# @name Coletas_POST
+POST {{server}}/odata/v4/catalog/Coletas('12552849-3036-471e-954a-cddb5569a4ag')/respondCollect
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "action": "Accept"
+}
+
+### Requisição para coletar coleta
+# @name Coletas_POST
+POST {{server}}/odata/v4/catalog/Coletas('12552849-3036-471e-954a-cddb5569a4ag')/finishCollect
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+### Coletas
+# @name Coletas_GET
+GET {{server}}/odata/v4/catalog/Coletas?
+Authorization: Basic {{username}}:{{password}}
+
+
+### Coletas
+# @name Coletas_POST
+POST {{server}}/odata/v4/catalog/Coletas
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "ID": "12552849-3036-471e-954a-cddb5569a4ag",
+  "cnpj_fornecedor": "19131243000194",
+  "transportadora": "transportadora-12552849",
+  "pedidos": [
+    {
+      "numero_pedido": "Pedidos-103710",
+      "item_pedido": "Pedidos-103710",
+      "valor_pedido": 26.1
+    },
+    {
+      "numero_pedido": "Pedidos-103711",
+      "item_pedido": "Pedidos-103711",
+      "valor_pedido": 26.15
+    }
+  ],
+  "acompanhamento": [
+    {
+      "data_comentario": "2006-02-03T00:00:00.000Z",
+      "status": {
+        "status": "Encaminhada"
+      }
+    }
+  ],
+  "createdAt": "2005-01-10T00:00:00.000Z",
+  "createdBy": "createdBy.7h1u9@example.com",
+  "modifiedAt": "2007-12-03T00:00:00.000Z",
+  "modifiedBy": "modifiedBy.7h1u9@example.net"
+}
+
+
+### Coletas
+# @name Coletas_PATCH
+PATCH {{server}}/odata/v4/catalog/Coletas/12552849-3036-471e-954a-cddb5569a4af
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "ID": "12552849-3036-471e-954a-cddb5569a4af",
+  "cnpj_fornecedor": "cnpj_fornecedor-12552849",
+  "transportadora": "transportadora-12552849",
+  "pedidos": [
+    {
+      "numero_pedido": "Pedidos-103710",
+      "item_pedido": "Pedidos-103710",
+      "valor_pedido": 26.1
+    },
+    {
+      "numero_pedido": "Pedidos-103711",
+      "item_pedido": "Pedidos-103711",
+      "valor_pedido": 26.15
+    }
+  ],
+  "acompanhamento": [
+    {
+      "data_comentario": "2006-02-03T00:00:00.000Z",
+      "status": {
+        "status": "Encaminhada"
+      }
+    }
+  ],
+  "createdAt": "2005-01-10T00:00:00.000Z",
+  "createdBy": "createdBy.7h1u9@example.com",
+  "modifiedAt": "2007-12-03T00:00:00.000Z",
+  "modifiedBy": "modifiedBy.7h1u9@example.net"
+}
+
+
+### Coletas
+# @name Coletas_DELETE
+DELETE {{server}}/odata/v4/catalog/Coletas/12552849-3036-471e-954a-cddb5569a4ag
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+
+### Pedidos
+# @name Pedidos_GET
+GET {{server}}/odata/v4/catalog/Pedidos
+Authorization: Basic {{username}}:{{password}}
+
+
+### Pedidos
+# @name Pedidos_POST
+POST {{server}}/odata/v4/catalog/Pedidos
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "numero_pedido": "Pedidos-103710",
+  "item_pedido": "Pedidos-103710",
+  "valor_pedido": 26.1
+}
+
+
+### Pedidos
+# @name Pedidos_PATCH
+PATCH {{server}}/odata/v4/catalog/Pedidos(numero_pedido='Pedidos-103710',item_pedido='Pedidos-103710')
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "numero_pedido": "Pedidos-103710",
+  "item_pedido": "Pedidos-103710",
+  "valor_pedido": 26.1
+}
+
+
+### Pedidos
+# @name Pedidos_DELETE
+DELETE {{server}}/odata/v4/catalog/Pedidos(numero_pedido='Pedidos-103710',item_pedido='Pedidos-103710')
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+
+### Acompanhamentos
+# @name Acompanhamentos_GET
+GET {{server}}/odata/v4/catalog/Acompanhamentos
+Authorization: Basic {{username}}:{{password}}
+
+
+### Acompanhamentos
+# @name Acompanhamentos_POST
+POST {{server}}/odata/v4/catalog/Acompanhamentos
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "data_comentario": "2006-02-03T00:00:00.000Z",
+  "status": {
+    "status": "Encaminhada"
+  }
+}
+
+
+### Acompanhamentos
+# @name Acompanhamentos_PATCH
+PATCH {{server}}/odata/v4/catalog/Acompanhamentos/[object Object]
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "data_comentario": "2006-02-03T00:00:00.000Z",
+  "status": {
+    "status": "Encaminhada"
+  }
+}
+
+
+### Acompanhamentos
+# @name Acompanhamentos_DELETE
+DELETE {{server}}/odata/v4/catalog/Acompanhamentos/[object Object]
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+
+### Status
+# @name Status_GET
+GET {{server}}/odata/v4/catalog/Status
+Authorization: Basic {{username}}:{{password}}
+
+
+### Status
+# @name Status_POST
+POST {{server}}/odata/v4/catalog/Status
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "status": "Encaminhada",
+  "descricao": "descricao-10708748"
+}
+
+
+### Status
+# @name Status_PATCH
+PATCH {{server}}/odata/v4/catalog/Status/Encaminhada
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}
+
+{
+  "status": "Encaminhada",
+  "descricao": "descricao-10708748"
+}
+
+
+### Status
+# @name Status_DELETE
+DELETE {{server}}/odata/v4/catalog/Status/Encaminhada
+Content-Type: application/json
+Authorization: Basic {{username}}:{{password}}

@@ -190,16 +190,16 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
         returnStruc.statusCode = 400;
         returnStruc.message = "ERROR_FOWARDING_COLLECT";    
         return returnStruc;    
-      };
-            
-      const resultUpdateCol = await UPDATE(Coletas).set({transportadora: carrier}).where({ID: ID});
-      const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
+      };      
+      const resultUpdateCol = await UPDATE(Coletas).set({transportadora: carrier}).where(ID);
+      const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID.ID});
       if (resultUpdateCol == 0 || resultUpdateAcom == 0) {
         returnStruc.statusCode = 406;
         returnStruc.message = "ERROR_UPDATING_ENTITY";
       }
       } catch (error) {
-        
+        returnStruc.statusCode = 400;
+        returnStruc.message = error;
       }
       return returnStruc;
       

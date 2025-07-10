@@ -4,7 +4,7 @@
 
 ### Coletas
 # @name Coletas_POST
-POST {{server}}/odata/v4/catalog/Coletas('15552849-3036-471e-954a-cddb5569a4af')/fowardCollect
+POST {{server}}/odata/v4/catalog/Coletas('16552849-3036-471e-954a-cddb5569a4af')/fowardCollect
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
@@ -42,7 +42,7 @@ Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "ID": "15552849-3036-471e-954a-cddb5569a4af",
+  "ID": "16552849-3036-471e-954a-cddb5569a4af",
   "cnpj_fornecedor": "19131243000197",
   "transportadora": "transportadora-12552849",
   "pedidos": [

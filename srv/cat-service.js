@@ -20,6 +20,10 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
   // Atualizar essa parte depois!!
   this.before (['CREATE', 'UPDATE'], Coletas, async (req) => { 
     console.log(req.params);
+    // Verificar se a coleta já existe (deve ser inserido antes da análise de pedidos atrelado a coleta)
+    const coleta = await SELECT.from(Coletas).where({ID: req.data.ID})
+    if (coleta != undefined) { return req.reject(400, i18n.at("ERROR_COLLECT_ALREADY_EXISTS", req.locale)); };
+
     // Verificação se existe algum pedido atrelado a Coleta
     if (req.data.pedidos.length == 0) { return req.reject(400, i18n.at("ERROR_COLLECT_WITHOUT_DEMANDS", req.locale)); };
 
@@ -57,8 +61,8 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
       if (element.pedidos.length != 0 && element.acompanhamento != null) {
         return req.reject(402, i18n.at("ERROR_COLLECT_REPEATED_DEMANDS", req.locale)); ;
       }
-    });    
-    
+    });            
+
   })
 
   // Método de encaminhamento de Coleta.

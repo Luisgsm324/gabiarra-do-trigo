@@ -22,7 +22,7 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     console.log(req.params);
     // Verificar se a coleta já existe (deve ser inserido antes da análise de pedidos atrelado a coleta)
     const coleta = await SELECT.from(Coletas).where({ID: req.data.ID})
-    if (coleta != undefined) { return req.reject(400, i18n.at("ERROR_COLLECT_ALREADY_EXISTS", req.locale)); };
+    if (coleta.length > 0) { return req.reject(400, i18n.at("ERROR_COLLECT_ALREADY_EXISTS", req.locale)); };
 
     // Verificação se existe algum pedido atrelado a Coleta
     if (req.data.pedidos.length == 0) { return req.reject(400, i18n.at("ERROR_COLLECT_WITHOUT_DEMANDS", req.locale)); };
@@ -225,7 +225,7 @@ async verificarColeta(Coletas, Acompanhamentos, req, ID) {
                         .join(`${Acompanhamentos.name} as B`)
                         .on(`A.ID = B.ID_id and B.status_status = 'Criada'`)
                         .columns(`A.ID`)
-                        .where(`ID = '${ID}' and createdBy = '${req.user.id}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject    
+                        .where(`ID = '${ID.ID}' and createdBy = '${req.user.id}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject    
   return coleta;                          
 };
 

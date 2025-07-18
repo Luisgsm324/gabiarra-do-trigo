@@ -67,7 +67,8 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 
   // Método de encaminhamento de Coleta.
   this.on('fowardCollect', Coletas, async (req) => {
-      const returnValue = await this.encaminharColeta(Coletas, Acompanhamentos, req, req.params[0], req.data.transportadora);
+      console.log(req.params[0]);
+      const returnValue = await this.encaminharColeta(Coletas, Acompanhamentos, req, req.params[0].ID, req.data.transportadora);
       if (returnValue.statusCode != 200) {
         return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) );        
       };
@@ -78,22 +79,21 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
   this.on('respondCollect', Coletas, async (req) => {
     let status;
     req.data.action == "Accept" ? status = "Aceita" : status = "Rejeitada";
-    console.log(req.user.attr.carrier);
     console.log(req.user);
     console.log(req.user.roles);
     console.log(req.params[0]);
-    const result = await this.responderColeta(Coletas, Acompanhamentos, req.params[0], req.user.attr.carrier,  status)
+    const result = await this.responderColeta(Coletas, Acompanhamentos, req.params[0], req.user.id,  status)
     if (result.statusCode != 200) {
-      return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) );        
+      return req.reject(result.statusCode, i18n.at(result.message, req.locale) );        
     };
     
   });
 
   // Método de Coletar a coleta
   this.on('finishCollect', Coletas, async (req) => {
-    const result = await this.coletarColeta(Coletas, Acompanhamentos, req.user.attr.carrier, req.params[0]);
+    const result = await this.coletarColeta(Coletas, Acompanhamentos, req.user.id, req.params[0]);
     if (result.statusCode != 200) {
-      return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) ); 
+      return req.reject(result.statusCode, i18n.at(result.message, req.locale) ); 
     };
   });
 
@@ -106,13 +106,15 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
       // Incluir a expansão do acompanhamento de forma automática
       acompanhamentoRef in req.query.SELECT.columns ? "" : req.query.SELECT.columns.push(acompanhamentoRef) ;
       
-      if (req.user.roles.hasOwnProperty('carrier')) {        
-        console.log(req.query.SELECT);
-        req.query.SELECT.where = [{ ref: ['transportadora'] }, '=', { val: req.user.attr.carrier }];
-        console.log(req.query.SELECT);
-      } else if (req.user.roles.hasOwnProperty('vendor')) {
-        req.query.SELECT.where = [{ ref: ['createdBy'] }, '=', { val: req.user.id }];
-      }     
+      // if (req.user.roles.hasOwnProperty('carrier')) {        
+      //   console.log(req.query.SELECT);
+      //   req.query.SELECT.where = [{ ref: ['transportadora'] }, '=', { val: req.user.attr.carrier }];
+      //   console.log(req.query.SELECT);
+      // } else if (req.user.roles.hasOwnProperty('vendor')) {
+      //   req.query.SELECT.where = [{ ref: ['createdBy'] }, '=', { val: req.user.id }];
+      // }
+      
+      req.user.roles.hasOwnProperty('carrier') ? req.query.SELECT.where = [{ ref: ['transportadora'] }, '=', { val: req.user.id }] : req.query.SELECT.where = [{ ref: ['createdBy'] }, '=', { val: req.user.id }] ;      
       const results = cds.run(req.query);      
       return results;
     }
@@ -191,8 +193,8 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
         returnStruc.message = "ERROR_FOWARDING_COLLECT";    
         return returnStruc;    
       };      
-      const resultUpdateCol = await UPDATE(Coletas).set({transportadora: carrier}).where(ID);
-      const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID.ID});
+      const resultUpdateCol = await UPDATE(Coletas).set({transportadora: carrier}).where({ID: ID});
+      const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
       if (resultUpdateCol == 0 || resultUpdateAcom == 0) {
         returnStruc.statusCode = 406;
         returnStruc.message = "ERROR_UPDATING_ENTITY";
@@ -225,7 +227,7 @@ async verificarColeta(Coletas, Acompanhamentos, req, ID) {
                         .join(`${Acompanhamentos.name} as B`)
                         .on(`A.ID = B.ID_id and B.status_status = 'Criada'`)
                         .columns(`A.ID`)
-                        .where(`ID = '${ID.ID}' and createdBy = '${req.user.id}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject    
+                        .where(`ID = '${ID}' and createdBy = '${req.user.id}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject    
   return coleta;                          
 };
 

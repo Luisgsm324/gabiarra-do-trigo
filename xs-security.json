@@ -9,7 +9,12 @@
       "description": "carrier"
     }
   ],
-  "attributes": [],
+  "attributes": [{
+    "name": "carrier",
+    "description": "Nome da transportadora",
+    "valueType": "string",
+    "valueRequired" : false
+  }],
   "role-templates": [
     {
       "name": "vendor",
@@ -25,7 +30,7 @@
       "scope-references": [
         "$XSAPPNAME.carrier"
       ],
-      "attribute-references": []
+      "attribute-references": ["carrier"]
     }
   ]
 }

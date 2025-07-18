@@ -59,6 +59,14 @@
               "roles": [
                 "carrier"
               ]
+            },
+            "Eduarda": {
+              "attr": {
+                "carrier": "Sedex Rosarinho"
+              },
+              "roles": [
+                "carrier"
+              ]
             }
           }
         }

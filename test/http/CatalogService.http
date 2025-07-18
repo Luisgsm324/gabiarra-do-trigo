@@ -9,13 +9,13 @@ Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
 {
-  "transportadora": "PLN entregas"
+  "transportadora": "Maria"
 }
 
 
 ### Requisição de Aceitar ou rejeitar coleta
 # @name Coletas_POST
-POST {{server}}/odata/v4/catalog/Coletas('12552849-3036-471e-954a-cddb5569a4ag')/respondCollect
+POST {{server}}/odata/v4/catalog/Coletas('16552849-3036-471e-954a-cddb5569a4af')/respondCollect
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 
@@ -111,7 +111,7 @@ Authorization: Basic {{username}}:{{password}}
 
 ### Coletas
 # @name Coletas_DELETE
-DELETE {{server}}/odata/v4/catalog/Coletas/12552849-3036-471e-954a-cddb5569a4ag
+DELETE {{server}}/odata/v4/catalog/Coletas/16552849-3036-471e-954a-cddb5569a4af
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 

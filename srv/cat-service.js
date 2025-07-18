@@ -82,7 +82,7 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     console.log(req.user);
     console.log(req.user.roles);
     console.log(req.params[0]);
-    const result = await this.responderColeta(Coletas, Acompanhamentos, req.params[0], req.user.id,  status)
+    const result = await this.responderColeta(Coletas, Acompanhamentos, req.params[0].ID, req.user.id,  status)
     if (result.statusCode != 200) {
       return req.reject(result.statusCode, i18n.at(result.message, req.locale) );        
     };
@@ -91,7 +91,7 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 
   // Método de Coletar a coleta
   this.on('finishCollect', Coletas, async (req) => {
-    const result = await this.coletarColeta(Coletas, Acompanhamentos, req.user.id, req.params[0]);
+    const result = await this.coletarColeta(Coletas, Acompanhamentos, req.user.id, req.params[0].ID);
     if (result.statusCode != 200) {
       return req.reject(result.statusCode, i18n.at(result.message, req.locale) ); 
     };
@@ -275,7 +275,8 @@ async responderColeta(Coletas, Acompanhamentos, ID, carrier, status) {
    };
     
    } catch (error) {
-    
+    returnStruc.statusCode = 400;
+    returnStruc.message = error;
    }
   return returnStruc;
 }
@@ -324,18 +325,23 @@ async coletarColeta(Coletas, Acompanhamentos, carrier, ID) {
     "statusCode": 200,
     "message": ""
   };
-
-  const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier,  'Aceita');
-  if (coleta == undefined) {
+  try {
+    const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier,  'Aceita');
+    if (coleta == undefined) {
+      returnStruc.statusCode = 400;
+      returnStruc.message = "ERROR_COLLECT_NOT_FOUND";
+      return returnStruc;
+    };
+    const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Coletada', data_comentario: new Date()}).where({id_ID: ID});
+    if (resultUpdateAcom == 0) {
+      returnStruc.statusCode = 402;
+      returnStruc.message = "ERROR_UPDATING_ENTITY";
+    };
+  } catch (error) {
     returnStruc.statusCode = 400;
-    returnStruc.message = "ERROR_COLLECT_NOT_FOUND";
-    return returnStruc;
-  };
-  const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Coletada', data_comentario: new Date()}).where({id_ID: ID});
-  if (resultUpdateAcom == 0) {
-    returnStruc.statusCode = 402;
-    returnStruc.message = "ERROR_UPDATING_ENTITY";
-  };
+    returnStruc.message = error;
+  }
+  
   return returnStruc;
 }
 

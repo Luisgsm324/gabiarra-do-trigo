@@ -1,5 +1,5 @@
 @server=http://localhost:4004
-@username=Luis
+@username=Maria
 @password=
 
 ### Coletas
@@ -25,7 +25,7 @@ Authorization: Basic {{username}}:{{password}}
 
 ### Requisição para coletar coleta
 # @name Coletas_POST
-POST {{server}}/odata/v4/catalog/Coletas('12552849-3036-471e-954a-cddb5569a4ag')/finishCollect
+POST {{server}}/odata/v4/catalog/Coletas('16552849-3036-471e-954a-cddb5569a4af')/finishCollect
 Content-Type: application/json
 Authorization: Basic {{username}}:{{password}}
 

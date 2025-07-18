@@ -12,34 +12,11 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 
   this.before('DELETE', Coletas, async (req) => {        
     const coleta = await this.verificarColeta(Coletas, Acompanhamentos, req, req.data.ID, 'Criada');
-    console.log(coleta);  
     if (coleta == undefined) {return req.reject(400, i18n.at("ERROR_DELETE_COLLECT", req.locale))};
   });
   
   // Validações no caso de criação e atualização (responsável pela aplicação das regras de negócio)
-  // Atualizar essa parte depois!!
   this.before (['CREATE', 'UPDATE'], Coletas, async (req) => { 
-    // console.log(req.params);
-    // // Verificação se existe algum pedido atrelado a Coleta
-    // if (req.data.pedidos.length == 0) { return req.reject(400, i18n.at("ERROR_COLLECT_WITHOUT_DEMANDS", req.locale)); };
-
-    // // Alteração do status do acompanhamento para criada (entendi que a data_comentario seja equivalente a data que ocorreu a atualização de um status)
-    // const acompanhamentoStru = {
-    //   "data_comentario": new Date(),
-    //   "status": {
-    //     "status": "Criada"
-    //   }
-    // }
-    // req.data.acompanhamento[0] = acompanhamentoStru;
-
-    // req.data.transportadora = ""; // Deixar vazio mesmo que seja fornecido a transportadora 
-    // try {
-    //   console.log(req.data.cnpj_fornecedor);
-    //   const { cnpj: cnpj } = await api.get(`/cnpj/v1/${req.data.cnpj_fornecedor}`);      
-    // } catch (error) {
-    //   return req.reject(400, i18n.at("ERROR_INVALID_CNPJ", req.locale))
-    // }
-    
     // Verificação de irregularidades no Body (N° Pedidos > 0 e CNPJ válido)
     const returnVBody = await this.verificarIrregularidadeBody(req.data, api);
     if (returnVBody.statusCode != 200) {
@@ -54,36 +31,10 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
 
     // Modificar o conteúdo do body para tratamento e adequação
     this.modificarBodyCriacao(req.data);
-
-    // // Verificar se a coleta já existe (deve ser inserido antes da análise de pedidos atrelado a coleta)
-    // const coleta = await SELECT.from(Coletas).where({ID: req.data.ID})
-    // if (coleta.length > 0) { return req.reject(400, i18n.at("ERROR_COLLECT_ALREADY_EXISTS", req.locale)); };
-
-    // // Lógica para verificação se já existe alguma coleta atrelada a esses pedidos em um status válido
-    // const numero_pedidos = req.data.pedidos.map((element) => {return element.numero_pedido})
-    
-    // const coletas = await SELECT
-    //                 .from(Coletas)                    
-    //                 .columns(c => { c.pedidos`[numero_pedido in ${numero_pedidos}]`(ped => {ped`.*`}),
-    //                                 c.acompanhamento`[status_status != 'Rejeitada']`(acom => {acom`.*`})
-    //                               });   
-    
-    // coletas.forEach(element => {           
-    //   if (element.pedidos.length != 0 && element.acompanhamento != null) {
-    //     return req.reject(402, i18n.at("ERROR_COLLECT_REPEATED_DEMANDS", req.locale)); ;
-    //   }
-    // }); 
-    
-    // const keys = Object.keys(response);
-    // console.log(response);
-
-               
-
   })
 
   // Método de encaminhamento de Coleta.
   this.on('fowardCollect', Coletas, async (req) => {
-      console.log(req.params[0]);
       const returnValue = await this.encaminharColeta(Coletas, Acompanhamentos, req, req.params[0].ID, req.data.transportadora);
       if (returnValue.statusCode != 200) {
         return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) );        
@@ -94,10 +45,7 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
   // Método de Aceitar ou Rejeitar a Coleta
   this.on('respondCollect', Coletas, async (req) => {
     let status;
-    req.data.action == "Accept" ? status = "Aceita" : status = "Rejeitada";
-    console.log(req.user);
-    console.log(req.user.roles);
-    console.log(req.params[0]);
+    req.data.action == "Accept" ? status = "Aceita" : status = "Rejeitada";    
     const result = await this.responderColeta(Coletas, Acompanhamentos, req.params[0].ID, req.user.id,  status)
     if (result.statusCode != 200) {
       return req.reject(result.statusCode, i18n.at(result.message, req.locale) );        
@@ -118,29 +66,16 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     const acompanhamentoRef = { ref: [ 'acompanhamento' ], expand: [ '*' ] };
     // Essa restrição vai fazer com que seja apenas aplicado no caso do GET, o que evita que seja aplicado para os outros casos de SELECT no UPDATE.
     if (req.res != undefined) {      
-      console.log(req.user.roles);
       // Incluir a expansão do acompanhamento de forma automática
       acompanhamentoRef in req.query.SELECT.columns ? "" : req.query.SELECT.columns.push(acompanhamentoRef) ;
       
-      // if (req.user.roles.hasOwnProperty('carrier')) {        
-      //   console.log(req.query.SELECT);
-      //   req.query.SELECT.where = [{ ref: ['transportadora'] }, '=', { val: req.user.attr.carrier }];
-      //   console.log(req.query.SELECT);
-      // } else if (req.user.roles.hasOwnProperty('vendor')) {
-      //   req.query.SELECT.where = [{ ref: ['createdBy'] }, '=', { val: req.user.id }];
-      // }
-      
+      // Verificar a role para alterar a query de leitura
       req.user.roles.hasOwnProperty('carrier') ? req.query.SELECT.where = [{ ref: ['transportadora'] }, '=', { val: req.user.id }] : req.query.SELECT.where = [{ ref: ['createdBy'] }, '=', { val: req.user.id }] ;      
       const results = cds.run(req.query);      
       return results;
     }
   })
 
-  this.after(['CREATE', 'UPDATE'], Coletas, async (coletas, req) => {
-    // console.log(coletas.acompanhamento[0].status_status);
-    // coletas.acompanhamento[0].status_status = 'Criada';
-    console.log("teste");
-  })     
   return super.init()
 }
 
@@ -232,17 +167,8 @@ async responderColeta(Coletas, Acompanhamentos, ID, carrier, status) {
     "statusCode": 200,
     "message": ""
   };
-   try {
-  console.log(carrier)
-    
-    // const coleta = await SELECT.one
-    //                       .from(`${Coletas.name} as A`)                      
-    //                       .join(`${Acompanhamentos.name} as B`)
-    //                       .on(`A.ID = B.ID_id and B.status_status = 'Encaminhada'`)
-    //                       .columns(`A.ID`)
-    //                       .where(`ID = '${ID}' and transportadora = '${carrier}'`);    // Ajustar depois esse req.data.ID com esse filtro para evitar SQL Inject 
-  const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier, 'Encaminhada');
-  console.log(coleta);
+   try { 
+  const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier, 'Encaminhada');  
   if (coleta == undefined) {
     returnStruc.statusCode = 400;
     returnStruc.message = "ERROR_COLLECT_NOT_FOUND";
@@ -301,11 +227,11 @@ async buscarColetaTransportadora(Coletas, Acompanhamentos,  ID, carrier, status)
 // -----------------------------------------------------------------------  
 
 async coletarColeta(Coletas, Acompanhamentos, carrier, ID) {
-  // ID = req.params[0]
   let returnStruc = {
     "statusCode": 200,
     "message": ""
   };
+
   try {
     const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier,  'Aceita');
     if (coleta == undefined) {
@@ -344,8 +270,7 @@ async verificarIrregularidadeBody(body, api) {
     "message": ""
   };
   // Verificação se existe algum pedido atrelado a Coleta
-  if (body.pedidos.length == 0) { 
-    //return req.reject(400, i18n.at("ERROR_COLLECT_WITHOUT_DEMANDS", req.locale)); 
+  if (body.pedidos.length == 0) {      
     returnStruc.statusCode = 400;
     returnStruc.message = "ERROR_COLLECT_WITHOUT_DEMANDS";
     return returnStruc;
@@ -355,7 +280,6 @@ async verificarIrregularidadeBody(body, api) {
   try {
     const { cnpj: cnpj } = await api.get(`/cnpj/v1/${body.cnpj_fornecedor}`);      
   } catch (error) {
-    //return req.reject(400, i18n.at("ERROR_INVALID_CNPJ", req.locale))
     returnStruc.statusCode = 400;
     returnStruc.message = "ERROR_INVALID_CNPJ";
   }
@@ -383,7 +307,6 @@ async verificarIrregularidadeEntidade(Coletas, body) {
   // Verificar se a coleta já existe (deve ser inserido antes da análise de pedidos atrelado a coleta)
   const coleta = await SELECT.from(Coletas).where({ID: body.ID})
   if (coleta.length > 0) { 
-    // return req.reject(400, i18n.at("ERROR_COLLECT_ALREADY_EXISTS", req.locale)); 
     returnStruc.statusCode = 400;
     returnStruc.message = "ERROR_COLLECT_ALREADY_EXISTS";
     return returnStruc; 
@@ -400,7 +323,6 @@ async verificarIrregularidadeEntidade(Coletas, body) {
   
   coletas.forEach(element => {           
     if (element.pedidos.length != 0 && element.acompanhamento != null) {
-      // return req.reject(402, i18n.at("ERROR_COLLECT_REPEATED_DEMANDS", req.locale));
       returnStruc.statusCode = 402;
       returnStruc.message = "ERROR_COLLECT_REPEATED_DEMANDS"
       return returnStruc;

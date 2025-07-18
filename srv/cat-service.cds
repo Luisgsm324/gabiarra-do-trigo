@@ -6,10 +6,6 @@ service CatalogService {
         action respondCollect @(restrict: [{ to: 'carrier' }]) ( action: String ) returns Map;
         action finishCollect @(restrict: [{ to: 'carrier' }]) ( ) returns Map;                         
     };
-
-    entity Pedidos as projection on my.Pedidos;
-    entity Acompanhamentos as projection on my.Acompanhamentos;
-    entity Status as projection on my.Status;
 }
 
 annotate CatalogService with @requires: 'authenticated-user';

@@ -20,6 +20,10 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
   // Atualizar essa parte depois!!
   this.before (['CREATE', 'UPDATE'], Coletas, async (req) => { 
     console.log(req.params);
+    // Verificar se a coleta já existe (deve ser inserido antes da análise de pedidos atrelado a coleta)
+    const coleta = await SELECT.from(Coletas).where({ID: req.data.ID})
+    if (coleta.length > 0) { return req.reject(400, i18n.at("ERROR_COLLECT_ALREADY_EXISTS", req.locale)); };
+
     // Verificação se existe algum pedido atrelado a Coleta
     if (req.data.pedidos.length == 0) { return req.reject(400, i18n.at("ERROR_COLLECT_WITHOUT_DEMANDS", req.locale)); };
 
@@ -57,13 +61,14 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
       if (element.pedidos.length != 0 && element.acompanhamento != null) {
         return req.reject(402, i18n.at("ERROR_COLLECT_REPEATED_DEMANDS", req.locale)); ;
       }
-    });    
-    
+    });            
+
   })
 
   // Método de encaminhamento de Coleta.
   this.on('fowardCollect', Coletas, async (req) => {
-      const returnValue = await this.encaminharColeta(Coletas, Acompanhamentos, req, req.params[0], req.data.transportadora);
+      console.log(req.params[0]);
+      const returnValue = await this.encaminharColeta(Coletas, Acompanhamentos, req, req.params[0].ID, req.data.transportadora);
       if (returnValue.statusCode != 200) {
         return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) );        
       };
@@ -74,22 +79,21 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
   this.on('respondCollect', Coletas, async (req) => {
     let status;
     req.data.action == "Accept" ? status = "Aceita" : status = "Rejeitada";
-    console.log(req.user.attr.carrier);
     console.log(req.user);
     console.log(req.user.roles);
     console.log(req.params[0]);
-    const result = await this.responderColeta(Coletas, Acompanhamentos, req.params[0], req.user.attr.carrier,  status)
+    const result = await this.responderColeta(Coletas, Acompanhamentos, req.params[0].ID, req.user.id,  status)
     if (result.statusCode != 200) {
-      return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) );        
+      return req.reject(result.statusCode, i18n.at(result.message, req.locale) );        
     };
     
   });
 
   // Método de Coletar a coleta
   this.on('finishCollect', Coletas, async (req) => {
-    const result = await this.coletarColeta(Coletas, Acompanhamentos, req.user.attr.carrier, req.params[0]);
+    const result = await this.coletarColeta(Coletas, Acompanhamentos, req.user.id, req.params[0].ID);
     if (result.statusCode != 200) {
-      return req.reject(returnValue.statusCode, i18n.at(returnValue.message, req.locale) ); 
+      return req.reject(result.statusCode, i18n.at(result.message, req.locale) ); 
     };
   });
 
@@ -102,13 +106,15 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
       // Incluir a expansão do acompanhamento de forma automática
       acompanhamentoRef in req.query.SELECT.columns ? "" : req.query.SELECT.columns.push(acompanhamentoRef) ;
       
-      if (req.user.roles.hasOwnProperty('carrier')) {        
-        console.log(req.query.SELECT);
-        req.query.SELECT.where = [{ ref: ['transportadora'] }, '=', { val: req.user.attr.carrier }];
-        console.log(req.query.SELECT);
-      } else if (req.user.roles.hasOwnProperty('vendor')) {
-        req.query.SELECT.where = [{ ref: ['createdBy'] }, '=', { val: req.user.id }];
-      }     
+      // if (req.user.roles.hasOwnProperty('carrier')) {        
+      //   console.log(req.query.SELECT);
+      //   req.query.SELECT.where = [{ ref: ['transportadora'] }, '=', { val: req.user.attr.carrier }];
+      //   console.log(req.query.SELECT);
+      // } else if (req.user.roles.hasOwnProperty('vendor')) {
+      //   req.query.SELECT.where = [{ ref: ['createdBy'] }, '=', { val: req.user.id }];
+      // }
+      
+      req.user.roles.hasOwnProperty('carrier') ? req.query.SELECT.where = [{ ref: ['transportadora'] }, '=', { val: req.user.id }] : req.query.SELECT.where = [{ ref: ['createdBy'] }, '=', { val: req.user.id }] ;      
       const results = cds.run(req.query);      
       return results;
     }
@@ -186,8 +192,7 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
         returnStruc.statusCode = 400;
         returnStruc.message = "ERROR_FOWARDING_COLLECT";    
         return returnStruc;    
-      };
-            
+      };      
       const resultUpdateCol = await UPDATE(Coletas).set({transportadora: carrier}).where({ID: ID});
       const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Encaminhada', data_comentario: new Date()}).where({id_ID: ID});
       if (resultUpdateCol == 0 || resultUpdateAcom == 0) {
@@ -195,7 +200,8 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
         returnStruc.message = "ERROR_UPDATING_ENTITY";
       }
       } catch (error) {
-        
+        returnStruc.statusCode = 400;
+        returnStruc.message = error;
       }
       return returnStruc;
       
@@ -269,7 +275,8 @@ async responderColeta(Coletas, Acompanhamentos, ID, carrier, status) {
    };
     
    } catch (error) {
-    
+    returnStruc.statusCode = 400;
+    returnStruc.message = error;
    }
   return returnStruc;
 }
@@ -318,18 +325,23 @@ async coletarColeta(Coletas, Acompanhamentos, carrier, ID) {
     "statusCode": 200,
     "message": ""
   };
-
-  const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier,  'Aceita');
-  if (coleta == undefined) {
+  try {
+    const coleta = await this.buscarColetaTransportadora(Coletas, Acompanhamentos, ID, carrier,  'Aceita');
+    if (coleta == undefined) {
+      returnStruc.statusCode = 400;
+      returnStruc.message = "ERROR_COLLECT_NOT_FOUND";
+      return returnStruc;
+    };
+    const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Coletada', data_comentario: new Date()}).where({id_ID: ID});
+    if (resultUpdateAcom == 0) {
+      returnStruc.statusCode = 402;
+      returnStruc.message = "ERROR_UPDATING_ENTITY";
+    };
+  } catch (error) {
     returnStruc.statusCode = 400;
-    returnStruc.message = "ERROR_COLLECT_NOT_FOUND";
-    return returnStruc;
-  };
-  const resultUpdateAcom = await UPDATE(Acompanhamentos).set({status_status: 'Coletada', data_comentario: new Date()}).where({id_ID: ID});
-  if (resultUpdateAcom == 0) {
-    returnStruc.statusCode = 402;
-    returnStruc.message = "ERROR_UPDATING_ENTITY";
-  };
+    returnStruc.message = error;
+  }
+  
   return returnStruc;
 }
 

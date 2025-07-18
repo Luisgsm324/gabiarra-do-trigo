@@ -3,7 +3,7 @@ const { expand } = require('@sap/cds/lib/ql/cds-ql');
 // const { Coletas, Pedidos, Acompanhamentos, Status } = require('@cds-models/CatalogService')
 
 module.exports = class CatalogService extends cds.ApplicationService { async init() {
-  const { Coletas, Pedidos, Acompanhamentos, Status } = cds.entities('CatalogService');
+  const { Coletas, Pedidos, Acompanhamentos, Status } = cds.entities('CatalogService');  
   const api = await cds.connect.to('Brasil.API');
   const i18n = cds.i18n.messages;
 // -----------------------------------------------------------------------
@@ -19,49 +19,65 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
   // Validações no caso de criação e atualização (responsável pela aplicação das regras de negócio)
   // Atualizar essa parte depois!!
   this.before (['CREATE', 'UPDATE'], Coletas, async (req) => { 
-    console.log(req.params);
-    // Verificar se a coleta já existe (deve ser inserido antes da análise de pedidos atrelado a coleta)
-    const coleta = await SELECT.from(Coletas).where({ID: req.data.ID})
-    if (coleta.length > 0) { return req.reject(400, i18n.at("ERROR_COLLECT_ALREADY_EXISTS", req.locale)); };
+    // console.log(req.params);
+    // // Verificação se existe algum pedido atrelado a Coleta
+    // if (req.data.pedidos.length == 0) { return req.reject(400, i18n.at("ERROR_COLLECT_WITHOUT_DEMANDS", req.locale)); };
 
-    // Verificação se existe algum pedido atrelado a Coleta
-    if (req.data.pedidos.length == 0) { return req.reject(400, i18n.at("ERROR_COLLECT_WITHOUT_DEMANDS", req.locale)); };
+    // // Alteração do status do acompanhamento para criada (entendi que a data_comentario seja equivalente a data que ocorreu a atualização de um status)
+    // const acompanhamentoStru = {
+    //   "data_comentario": new Date(),
+    //   "status": {
+    //     "status": "Criada"
+    //   }
+    // }
+    // req.data.acompanhamento[0] = acompanhamentoStru;
 
-    // Alteração do status do acompanhamento para criada (entendi que a data_comentario seja equivalente a data que ocorreu a atualização de um status)
-    const acompanhamentoStru = {
-      "data_comentario": new Date(),
-      "status": {
-        "status": "Criada"
-      }
-    }
-    req.data.acompanhamento[0] = acompanhamentoStru;
-
-    req.data.transportadora = ""; // Deixar vazio mesmo que seja fornecido a transportadora 
-    try {
-      console.log(req.data.cnpj_fornecedor);
-      const { cnpj: cnpj } = await api.get(`/cnpj/v1/${req.data.cnpj_fornecedor}`);      
-    } catch (error) {
-      return req.reject(400, i18n.at("ERROR_INVALID_CNPJ", req.locale))
-    }
+    // req.data.transportadora = ""; // Deixar vazio mesmo que seja fornecido a transportadora 
+    // try {
+    //   console.log(req.data.cnpj_fornecedor);
+    //   const { cnpj: cnpj } = await api.get(`/cnpj/v1/${req.data.cnpj_fornecedor}`);      
+    // } catch (error) {
+    //   return req.reject(400, i18n.at("ERROR_INVALID_CNPJ", req.locale))
+    // }
     
+    // Verificação de irregularidades no Body (N° Pedidos > 0 e CNPJ válido)
+    const returnVBody = await this.verificarIrregularidadeBody(req.data, api);
+    if (returnVBody.statusCode != 200) {
+      return req.reject(returnVBody.statusCode, i18n.at(returnVBody.message, req.locale) );        
+    };
+
+    // Verificação de irregularidades na lógica de entidade (entidade já existe ou já existe algum pedido atrelado a uma outra coleta)
+    const returnVEnti = await this.verificarIrregularidadeEntidade(Coletas, req.data);
+    if (returnVEnti.statusCode != 200) {
+      return req.reject(returnVBody.statusCode, i18n.at(returnVBody.message, req.locale) );        
+    };
+
+    // Modificar o conteúdo do body para tratamento e adequação
+    this.modificarBodyCriacao(req.data);
+
+    // // Verificar se a coleta já existe (deve ser inserido antes da análise de pedidos atrelado a coleta)
+    // const coleta = await SELECT.from(Coletas).where({ID: req.data.ID})
+    // if (coleta.length > 0) { return req.reject(400, i18n.at("ERROR_COLLECT_ALREADY_EXISTS", req.locale)); };
+
+    // // Lógica para verificação se já existe alguma coleta atrelada a esses pedidos em um status válido
+    // const numero_pedidos = req.data.pedidos.map((element) => {return element.numero_pedido})
+    
+    // const coletas = await SELECT
+    //                 .from(Coletas)                    
+    //                 .columns(c => { c.pedidos`[numero_pedido in ${numero_pedidos}]`(ped => {ped`.*`}),
+    //                                 c.acompanhamento`[status_status != 'Rejeitada']`(acom => {acom`.*`})
+    //                               });   
+    
+    // coletas.forEach(element => {           
+    //   if (element.pedidos.length != 0 && element.acompanhamento != null) {
+    //     return req.reject(402, i18n.at("ERROR_COLLECT_REPEATED_DEMANDS", req.locale)); ;
+    //   }
+    // }); 
     
     // const keys = Object.keys(response);
     // console.log(response);
 
-    // Lógica para verificação se já existe alguma coleta atrelada a esses pedidos em um status válido
-    const numero_pedidos = req.data.pedidos.map((element) => {return element.numero_pedido})
-    
-    const coletas = await SELECT
-                    .from(Coletas)                    
-                    .columns(c => { c.pedidos`[numero_pedido in ${numero_pedidos}]`(ped => {ped`.*`}),
-                                    c.acompanhamento`[status_status != 'Rejeitada']`(acom => {acom`.*`})
-                                  });   
-    
-    coletas.forEach(element => {           
-      if (element.pedidos.length != 0 && element.acompanhamento != null) {
-        return req.reject(402, i18n.at("ERROR_COLLECT_REPEATED_DEMANDS", req.locale)); ;
-      }
-    });            
+               
 
   })
 
@@ -309,5 +325,113 @@ async coletarColeta(Coletas, Acompanhamentos, carrier, ID) {
   
   return returnStruc;
 }
+
+// -----------------------------------------------------------------------
+// # verificarIrregularidadeBody
+// -----------------------------------------------------------------------
+// Método responsável por realizar as verificações de irregularidade no Body no processo de Criação/Atualização da Coleta
+// -----------------------------------------------------------------------
+// Inputs <<
+// << body - Conteúdo do body
+// << api - Estrutura para conexão com API
+// -----------------------------------------------------------------------
+// Outputs >>
+// >> returnStruc - Estrutura de saída com o Status Code e a mensagem para validação
+// -----------------------------------------------------------------------  
+async verificarIrregularidadeBody(body, api) {
+  let returnStruc = {
+    "statusCode": 200,
+    "message": ""
+  };
+  // Verificação se existe algum pedido atrelado a Coleta
+  if (body.pedidos.length == 0) { 
+    //return req.reject(400, i18n.at("ERROR_COLLECT_WITHOUT_DEMANDS", req.locale)); 
+    returnStruc.statusCode = 400;
+    returnStruc.message = "ERROR_COLLECT_WITHOUT_DEMANDS";
+    return returnStruc;
+  };
+  
+  // Verificar se o CNPJ é válido
+  try {
+    const { cnpj: cnpj } = await api.get(`/cnpj/v1/${body.cnpj_fornecedor}`);      
+  } catch (error) {
+    //return req.reject(400, i18n.at("ERROR_INVALID_CNPJ", req.locale))
+    returnStruc.statusCode = 400;
+    returnStruc.message = "ERROR_INVALID_CNPJ";
+  }
+  return returnStruc                       
+};
+
+// -----------------------------------------------------------------------
+// # verificarIrregularidadeEntidade
+// -----------------------------------------------------------------------
+// Método responsável por realizar as verificações de irregularidade na lógica de entidades no processo de Criação/Atualização da Coleta
+// -----------------------------------------------------------------------
+// Inputs <<
+// << Coletas - Entidade Coletas
+// << body - Conteúdo do body
+// -----------------------------------------------------------------------
+// Outputs >>
+// >> returnStruc - Estrutura de saída com o Status Code e a mensagem para validação
+// -----------------------------------------------------------------------  
+async verificarIrregularidadeEntidade(Coletas, body) {
+  let returnStruc = {
+    "statusCode": 200,
+    "message": ""
+  };
+
+  // Verificar se a coleta já existe (deve ser inserido antes da análise de pedidos atrelado a coleta)
+  const coleta = await SELECT.from(Coletas).where({ID: body.ID})
+  if (coleta.length > 0) { 
+    // return req.reject(400, i18n.at("ERROR_COLLECT_ALREADY_EXISTS", req.locale)); 
+    returnStruc.statusCode = 400;
+    returnStruc.message = "ERROR_COLLECT_ALREADY_EXISTS";
+    return returnStruc; 
+  };
+
+  // Lógica para verificação se já existe alguma coleta atrelada a esses pedidos em um status válido
+  const numero_pedidos = body.pedidos.map((element) => {return element.numero_pedido})
+  
+  const coletas = await SELECT
+                  .from(Coletas)                    
+                  .columns(c => { c.pedidos`[numero_pedido in ${numero_pedidos}]`(ped => {ped`.*`}),
+                                  c.acompanhamento`[status_status != 'Rejeitada']`(acom => {acom`.*`})
+                                });   
+  
+  coletas.forEach(element => {           
+    if (element.pedidos.length != 0 && element.acompanhamento != null) {
+      // return req.reject(402, i18n.at("ERROR_COLLECT_REPEATED_DEMANDS", req.locale));
+      returnStruc.statusCode = 402;
+      returnStruc.message = "ERROR_COLLECT_REPEATED_DEMANDS"
+      return returnStruc;
+    }
+  });
+  return returnStruc; 
+};
+// -----------------------------------------------------------------------
+// # modificarBodyCriacao
+// -----------------------------------------------------------------------
+// Método responsável por modificar o body no processo de Criação/Atualização da Coleta
+// -----------------------------------------------------------------------
+// Inputs <<
+// << body - Conteúdo do body
+// -----------------------------------------------------------------------
+// Outputs >>
+// >> 
+// -----------------------------------------------------------------------  
+modificarBodyCriacao(body) {
+  const acompanhamentoStru = {
+    "data_comentario": new Date(),
+    "status": {
+      "status": "Criada"
+    }
+  }
+
+  // Alterar o Status para Criada e colocar a data de hoje, independente do input do usuário
+  body.acompanhamento[0] = acompanhamentoStru;
+
+  // Remover o conteúdo de transportadora para evitar problemas em processos de leitura futuros
+  body.transportadora = "";
+};
 
 }

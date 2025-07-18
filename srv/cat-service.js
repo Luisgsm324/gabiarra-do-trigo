@@ -124,42 +124,7 @@ module.exports = class CatalogService extends cds.ApplicationService { async ini
     // console.log(coletas.acompanhamento[0].status_status);
     // coletas.acompanhamento[0].status_status = 'Criada';
     console.log("teste");
-  })
-      
-// -----------------------------------------------------------------------
-// # Pedidos
-// -----------------------------------------------------------------------
-  
-  this.before (['CREATE', 'UPDATE'], Pedidos, async (req) => {
-    console.log('Before CREATE/UPDATE Pedidos', req.data)
-  })
-  this.after ('READ', Pedidos, async (pedidos, req) => {
-    console.log('After READ Pedidos', pedidos)
-  })
-  
-// -----------------------------------------------------------------------
-// # Acompanhamentos
-// -----------------------------------------------------------------------
-   
-  this.before (['CREATE', 'UPDATE'], Acompanhamentos, async (req) => {
-    console.log('Before CREATE/UPDATE Acompanhamentos', req.data)
-  })
-  this.after ('READ', Acompanhamentos, async (acompanhamentos, req) => {
-    console.log('After READ Acompanhamentos', acompanhamentos)
-  })
-
-// -----------------------------------------------------------------------
-// # Status
-// -----------------------------------------------------------------------
-  
-  this.before (['CREATE', 'UPDATE'], Status, async (req) => {
-    console.log('Before CREATE/UPDATE Status', req.data)
-  })
-  this.after ('READ', Status, async (status, req) => {
-    console.log('After READ Status', status)
-  })
-
-
+  })     
   return super.init()
 }
 
